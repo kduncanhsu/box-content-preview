@@ -493,6 +493,10 @@ describe('WaveformView', () => {
         dispatchTrackPointer(window, 'pointermove', 100);
         expect(onRangeDragChange).toHaveBeenCalledWith(true);
         expect(screen.getByTestId('bp-waveform-range')).toBeInTheDocument();
+        expect(screen.getByTestId('bp-waveform-range-tooltip')).toHaveTextContent('0:00.40 - 0:04.00');
+        expect(screen.getByTestId('bp-waveform-range-tooltip').style.left).toBe(
+            screen.getByTestId('bp-waveform-range-handle-end').style.left,
+        );
 
         dispatchTrackPointer(window, 'pointerup', 100);
 
@@ -500,6 +504,20 @@ describe('WaveformView', () => {
         expect(onRangeDragChange).toHaveBeenLastCalledWith(false);
         clickHandler?.(0.75);
         expect(onSeek).not.toHaveBeenCalled();
+    });
+
+    test('should anchor the range tooltip on the moving start edge when a create drag goes right to left', () => {
+        render(<WaveformView durationSec={8} onRangeChange={jest.fn()} peaks={[0.2, 0.8]} />);
+        mockWaveformRect();
+        const track = screen.getByTestId('bp-waveform-view').querySelector('.bp-WaveformView-track') as HTMLElement;
+
+        dispatchTrackPointer(track, 'pointerdown', 100);
+        dispatchTrackPointer(window, 'pointermove', 10);
+
+        expect(screen.getByTestId('bp-waveform-range-tooltip')).toHaveTextContent('0:00.40 - 0:04.00');
+        expect(screen.getByTestId('bp-waveform-range-tooltip').style.left).toBe(
+            screen.getByTestId('bp-waveform-range-handle-start').style.left,
+        );
     });
 
     test('should keep a short press as click-to-seek', () => {

@@ -157,18 +157,19 @@ describe('range', () => {
 
     test('should anchor a drag-created range on the press and open it in either direction', () => {
         expect(rangeFromCreateDrag({ durationMs, originMs: 2000, pointerMs: 4000 })).toEqual({
-            endMs: 4000,
-            startMs: 2000,
+            handle: 'end',
+            range: { endMs: 4000, startMs: 2000 },
         });
         expect(rangeFromCreateDrag({ durationMs, originMs: 2000, pointerMs: 500 })).toEqual({
-            endMs: 2000,
-            startMs: 500,
+            handle: 'start',
+            range: { endMs: 2000, startMs: 500 },
         });
         const nudged = rangeFromCreateDrag({
             durationMs,
             originMs: 2000,
             pointerMs: 2000 + WAVEFORM_RANGE_MIN_DURATION_MS - 50,
         });
-        expect(nudged.endMs - nudged.startMs).toBe(WAVEFORM_RANGE_MIN_DURATION_MS);
+        expect(nudged.handle).toBe('end');
+        expect(nudged.range.endMs - nudged.range.startMs).toBe(WAVEFORM_RANGE_MIN_DURATION_MS);
     });
 });

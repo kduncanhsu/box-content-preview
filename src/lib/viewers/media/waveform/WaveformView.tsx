@@ -31,6 +31,7 @@ import {
     isPointerOverRange,
     isRangeCollapsed,
     pointerTimeMs,
+    RangeHandle,
     rangeFromCreateDrag,
     rangeProgress,
     resolveRange,
@@ -215,7 +216,7 @@ function drawnRangeFromMove(
     viewport: WaveformViewport,
     playheadSec: number,
     durationSec: number,
-): { endMs: number; startMs: number } {
+): { handle: RangeHandle; range: { endMs: number; startMs: number } } {
     const pointerMs = snapTimeMs({
         pixelsPerSecond: viewport.pixelsPerSecond,
         playheadMs: playheadSec * 1000,
@@ -319,6 +320,7 @@ function WaveformView({
     const [canvasWidthPx, setCanvasWidthPx] = useState(0);
     const [scrollLeft, setScrollLeft] = useState(0);
     const [previewRange, setPreviewRange] = useState<WaveformViewProps['range']>(null);
+    const [createDragHandle, setCreateDragHandle] = useState<RangeHandle | null>(null);
     const [createRange, setCreateRange] = useState<WaveformViewProps['range']>(null);
     const [isRangeDragging, setIsRangeDragging] = useState(false);
     const isRangeDraggingRef = useRef(false);
@@ -1145,7 +1147,7 @@ function WaveformView({
                 }
                 moveEvent.preventDefault();
                 const playheadSec = mediaElRef.current ? mediaElRef.current.currentTime : currentTimeRef.current;
-                drag.range = drawnRangeFromMove(
+                const drawn = drawnRangeFromMove(
                     drag,
                     moveEvent.clientX,
                     track,
@@ -1153,10 +1155,12 @@ function WaveformView({
                     playheadSec,
                     durationSecRef.current,
                 );
+                drag.range = drawn.range;
                 if (!drag.active) {
                     drag.active = true;
                     handleRangeDragChange(true);
                 }
+                setCreateDragHandle(drawn.handle);
                 setCreateRange(drag.range);
                 setPreviewRange(drag.range);
             };
@@ -1176,6 +1180,7 @@ function WaveformView({
                 const wasActive = drag.active;
                 const drawn = drag.range;
                 createDragRef.current = null;
+                setCreateDragHandle(null);
                 removeListeners();
                 if (!wasActive || !drawn) {
                     return;
@@ -1268,9 +1273,11 @@ function WaveformView({
                     <WaveformRangeSelection
                         ref={rangeLayerRef}
                         currentTimeSec={currentTime}
+                        draggingHandle={createDragHandle}
                         durationSec={durationSec}
                         getPlayheadSec={getPlayheadSec}
                         interactive={interactive && !isOverlayReadOnly}
+                        isDragging={isRangeDragging}
                         isHighlighted={isRangeDragging || isRangeHovered}
                         keepHighlight
                         onDragChange={handleRangeDragChange}

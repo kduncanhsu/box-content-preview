@@ -34,9 +34,13 @@ export type WaveformRangeSelectionHandle = {
 
 export type WaveformRangeSelectionProps = {
     currentTimeSec?: number;
+    /** Moving edge during a create-drag. Handle drags use their own active handle. */
+    draggingHandle?: RangeHandle | null;
     durationSec: number;
     getPlayheadSec?: () => number;
     interactive?: boolean;
+    /** Create-drag or handle-drag. Shows the start and end tooltip. */
+    isDragging?: boolean;
     isHighlighted?: boolean;
     keepHighlight?: boolean;
     onDragCreate?: () => void;
@@ -106,9 +110,11 @@ const WaveformRangeSelection = forwardRef<WaveformRangeSelectionHandle, Waveform
     function WaveformRangeSelection(
         {
             currentTimeSec = 0,
+            draggingHandle = null,
             durationSec,
             getPlayheadSec,
             interactive = true,
+            isDragging = false,
             isHighlighted = false,
             keepHighlight = true,
             onDragCreate,
@@ -128,6 +134,8 @@ const WaveformRangeSelection = forwardRef<WaveformRangeSelectionHandle, Waveform
         const tooltipRef = useRef<HTMLDivElement>(null);
         const commentRef = useRef<HTMLButtonElement>(null);
         const dragRef = useRef<DragState | null>(null);
+        const activeHandleRef = useRef<RangeHandle | null>(null);
+        const draggingHandleRef = useRef<RangeHandle | null>(draggingHandle);
         const rangeRef = useRef(range);
         const displayedRef = useRef<ResolvedRange>(resolveRange(range, durationMsFromSec(durationSec)));
         const viewportRef = useRef(viewport);
@@ -138,21 +146,22 @@ const WaveformRangeSelection = forwardRef<WaveformRangeSelectionHandle, Waveform
         const getPlayheadSecRef = useRef(getPlayheadSec);
         const [dragRange, setDragRange] = useState<ResolvedRange | null>(null);
         const [activeHandle, setActiveHandle] = useState<RangeHandle | null>(null);
-        const activeHandleRef = useRef<RangeHandle | null>(null);
 
         rangeRef.current = range;
+        activeHandleRef.current = activeHandle;
+        draggingHandleRef.current = draggingHandle;
         durationSecRef.current = durationSec;
         onDragChangeRef.current = onDragChange;
         onPreviewChangeRef.current = onPreviewChange;
         onRangeChangeRef.current = onRangeChange;
         getPlayheadSecRef.current = getPlayheadSec;
-        activeHandleRef.current = activeHandle;
 
         const durationMs = durationMsFromSec(durationSec);
         const displayed = dragRange ?? resolveRange(range, durationMs);
         displayedRef.current = displayed;
         const showCommentButton =
             !readOnly && Boolean(onDragCreate) && displayed.startMs !== displayed.endMs && activeHandle == null;
+        const showTooltip = !readOnly && (activeHandle != null || isDragging);
 
         const syncPositions = useCallback(
             (next: ResolvedRange, nextViewport: WaveformViewport, nextDurationSec: number): void => {
@@ -182,7 +191,7 @@ const WaveformRangeSelection = forwardRef<WaveformRangeSelectionHandle, Waveform
                 );
                 const tooltip = tooltipRef.current;
                 if (tooltip) {
-                    const tooltipHandle = activeHandleRef.current ?? 'end';
+                    const tooltipHandle = activeHandleRef.current ?? draggingHandleRef.current ?? 'end';
                     const tooltipMs = tooltipHandle === 'start' ? next.startMs : next.endMs;
                     tooltip.style.left = timeLeftPercent(tooltipMs / 1000, nextDurationSec, nextViewport);
                 }
@@ -211,7 +220,16 @@ const WaveformRangeSelection = forwardRef<WaveformRangeSelectionHandle, Waveform
 
         useLayoutEffect(() => {
             syncPositions(displayedRef.current, viewportRef.current, durationSec);
-        }, [activeHandle, displayed.endMs, displayed.startMs, durationSec, showCommentButton, syncPositions]);
+        }, [
+            activeHandle,
+            draggingHandle,
+            displayed.endMs,
+            displayed.startMs,
+            durationSec,
+            showCommentButton,
+            showTooltip,
+            syncPositions,
+        ]);
         useLayoutEffect(() => {
             const next = createWaveformViewport({
                 durationSec: viewport.durationSec,
@@ -385,9 +403,8 @@ const WaveformRangeSelection = forwardRef<WaveformRangeSelectionHandle, Waveform
             return null;
         }
 
-        const tooltipHandle = activeHandle ?? 'end';
-        const tooltipMs = tooltipHandle === 'start' ? displayed.startMs : displayed.endMs;
         const collapsed = displayed.startMs === displayed.endMs;
+        const tooltipLabel = `${formatTime(displayed.startMs / 1000)} - ${formatTime(displayed.endMs / 1000)}`;
         const highlight = isHighlighted || collapsed;
         const commentButton =
             showCommentButton && onDragCreate ? (
@@ -447,9 +464,9 @@ const WaveformRangeSelection = forwardRef<WaveformRangeSelectionHandle, Waveform
                         <div className="bp-WaveformRange-handleGrip" />
                     </div>
                 )}
-                {activeHandle && (
+                {showTooltip && (
                     <div ref={tooltipRef} className="bp-WaveformRange-tooltip" data-testid="bp-waveform-range-tooltip">
-                        <div className="bp-WaveformRange-tooltipTime">{formatTime(tooltipMs / 1000)}</div>
+                        <div className="bp-WaveformRange-tooltipTime">{tooltipLabel}</div>
                     </div>
                 )}
                 {commentButton}

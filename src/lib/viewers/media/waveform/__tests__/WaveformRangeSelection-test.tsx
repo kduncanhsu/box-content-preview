@@ -295,12 +295,14 @@ describe('WaveformRangeSelection', () => {
         dispatchPointer(endHandle, 'pointerdown', 50);
         expect(onDragChange).toHaveBeenCalledWith(true);
         expect(onRangeChange).not.toHaveBeenCalled();
-        expect(screen.getByTestId('bp-waveform-range-tooltip')).toHaveTextContent('0:02.00');
+        expect(screen.getByTestId('bp-waveform-range-tooltip')).toHaveTextContent('0:02.00 - 0:02.00');
+        expect(screen.getByTestId('bp-waveform-range-tooltip')).toHaveStyle({ left: '25%' });
 
         dispatchPointer(window, 'pointermove', 100);
         expect(onRangeChange).not.toHaveBeenCalled();
         expect(screen.getByTestId('bp-waveform-range-handle-end')).toHaveStyle({ left: '50%' });
-        expect(screen.getByTestId('bp-waveform-range-tooltip')).toHaveTextContent('0:04.00');
+        expect(screen.getByTestId('bp-waveform-range-tooltip')).toHaveTextContent('0:02.00 - 0:04.00');
+        expect(screen.getByTestId('bp-waveform-range-tooltip').style.left).toBe('50%');
 
         dispatchPointer(window, 'pointerup', 100);
         expect(onRangeChange).toHaveBeenCalledTimes(1);
@@ -387,6 +389,34 @@ describe('WaveformRangeSelection', () => {
         expect(onDragChange).toHaveBeenCalledWith(true);
         expect(onDragChange).toHaveBeenCalledWith(false);
         expect(onRangeChange).not.toHaveBeenCalled();
+    });
+
+    test('should show both ends while a range drag is in progress', () => {
+        render(
+            <WaveformRangeSelection
+                durationSec={8}
+                isDragging
+                range={{ endMs: 4000, startMs: 2000 }}
+                viewport={viewport}
+            />,
+        );
+
+        expect(screen.getByTestId('bp-waveform-range-tooltip')).toHaveTextContent('0:02.00 - 0:04.00');
+        expect(screen.getByTestId('bp-waveform-range-tooltip')).toHaveStyle({ left: '50%' });
+    });
+
+    test('should anchor the tooltip on the start edge during a right-to-left create drag', () => {
+        render(
+            <WaveformRangeSelection
+                draggingHandle="start"
+                durationSec={8}
+                isDragging
+                range={{ endMs: 4000, startMs: 2000 }}
+                viewport={viewport}
+            />,
+        );
+
+        expect(screen.getByTestId('bp-waveform-range-tooltip')).toHaveStyle({ left: '25%' });
     });
 
     test('should draw a read-only range without handles', () => {

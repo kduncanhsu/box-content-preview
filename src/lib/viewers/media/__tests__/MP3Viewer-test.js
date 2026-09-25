@@ -919,6 +919,37 @@ describe('lib/viewers/media/MP3Viewer', () => {
             expect(mp3.emit).not.toHaveBeenCalled();
         });
 
+        test('should emit comment_range_compose at the playhead when paused with no range', () => {
+            mp3.mediaEl = document.createElement('audio');
+            Object.defineProperty(mp3.mediaEl, 'paused', { configurable: true, value: true });
+            Object.defineProperty(mp3.mediaEl, 'currentTime', { configurable: true, value: 12.5 });
+            mp3.emit.mockClear();
+
+            mp3.handleCommentRangeDragCreate();
+
+            expect(mp3.emit).toHaveBeenCalledTimes(1);
+            expect(mp3.emit).toHaveBeenCalledWith('comment_range_compose', { startMs: 12500 });
+            expect(mp3.isCommentRangeTimestampActive).not.toBe(true);
+        });
+
+        test('should not emit a playhead comment while playing or over a viewed range', () => {
+            mp3.mediaEl = document.createElement('audio');
+            Object.defineProperty(mp3.mediaEl, 'paused', { configurable: true, value: false });
+            Object.defineProperty(mp3.mediaEl, 'currentTime', { configurable: true, value: 12.5 });
+            mp3.emit.mockClear();
+
+            mp3.handleCommentRangeDragCreate();
+
+            expect(mp3.emit).not.toHaveBeenCalled();
+
+            Object.defineProperty(mp3.mediaEl, 'paused', { configurable: true, value: true });
+            mp3.commentRangeReadOnly = { endMs: 4000, startMs: 2000 };
+
+            mp3.handleCommentRangeDragCreate();
+
+            expect(mp3.emit).not.toHaveBeenCalled();
+        });
+
         test('should emit comment_range_draft_dismiss when the timestamp toggle is on', () => {
             mp3.handleCommentRangeDraft({ endMs: 4000, startMs: 2000 });
             mp3.emit.mockClear();

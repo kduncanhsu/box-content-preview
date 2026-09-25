@@ -1238,11 +1238,24 @@ class MP3Viewer extends MediaBaseViewer {
 
     handleCommentRangeDragCreate = () => {
         const draft = this.commentRangeDraft;
-        if (!draft || isRangeCollapsed(draft)) {
+        if (draft && !isRangeCollapsed(draft)) {
+            this.isCommentRangeTimestampActive = true;
+            this.emit(EVENT_COMMENT_RANGE_DRAG_CREATE, { endMs: draft.endMs, startMs: draft.startMs });
             return;
         }
-        this.isCommentRangeTimestampActive = true;
-        this.emit(EVENT_COMMENT_RANGE_DRAG_CREATE, { endMs: draft.endMs, startMs: draft.startMs });
+        // Paused, with no draft and no viewed range: Comment is the playhead.
+        if (draft || this.commentRangeReadOnly || !this.mediaEl || !this.mediaEl.paused) {
+            return;
+        }
+        const timeSec = this.mediaEl.currentTime;
+        if (!Number.isFinite(timeSec) || timeSec < 0) {
+            return;
+        }
+        const startMs = Math.floor(timeSec * 1000);
+        if (!Number.isSafeInteger(startMs)) {
+            return;
+        }
+        this.emit(EVENT_COMMENT_RANGE_DRAG_CREATE, { startMs });
     };
 
     handleCommentRangeDragChange = isDragging => {

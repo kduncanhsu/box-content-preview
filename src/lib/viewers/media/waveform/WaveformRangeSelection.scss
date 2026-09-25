@@ -97,6 +97,21 @@
     cursor: pointer;
     appearance: none;
     pointer-events: auto;
+    animation: bp-WaveformRange-commentIn 150ms ease-out both;
+}
+
+@keyframes bp-WaveformRange-commentIn {
+    from {
+        opacity: 0;
+
+        // Resting Y is calc(-100% - 36px). Enter 8px lower.
+        transform: translate(-50%, calc(-100% - 28px));
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, calc(-100% - 36px));
+    }
 }
 
 .bp-WaveformRange-commentIcon {
@@ -138,5 +153,9 @@
     .bp-WaveformRange-region,
     .bp-WaveformRange-handleGrip {
         transition: none;
+    }
+
+    .bp-WaveformRange-comment {
+        animation: none;
     }
 }

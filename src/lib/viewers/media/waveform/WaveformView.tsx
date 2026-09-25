@@ -2,6 +2,7 @@ import classNames from 'classnames';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import WaveSurfer from 'wavesurfer.js';
+import IconComment24 from '../../controls/icons/IconComment24';
 import { getCurrentTimeMs } from '../../../util';
 import {
     getBufferedProgress,
@@ -65,6 +66,19 @@ type ZoomOrigin = {
 function devicePixelWidth(widthCssPx: number): number {
     const pixelRatio = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
     return widthCssPx * pixelRatio;
+}
+
+const WAVEFORM_POINTER_CHROME = [
+    'bp-waveform-range-handle-start',
+    'bp-waveform-range-handle-end',
+    'bp-waveform-range-comment',
+    'bp-waveform-playhead-comment',
+]
+    .map(testId => `[data-testid="${testId}"]`)
+    .join(', ');
+
+function isWaveformChromeTarget(target: EventTarget | null): boolean {
+    return target instanceof Element && !!target.closest(WAVEFORM_POINTER_CHROME);
 }
 
 function prefersReducedMotion(): boolean {
@@ -1111,13 +1125,7 @@ function WaveformView({
             ) {
                 return;
             }
-            const { target } = event;
-            if (
-                target instanceof Element &&
-                target.closest(
-                    '[data-testid="bp-waveform-range-handle-start"], [data-testid="bp-waveform-range-handle-end"], [data-testid="bp-waveform-range-comment"]',
-                )
-            ) {
+            if (isWaveformChromeTarget(event.target)) {
                 return;
             }
             const drag = rangeCreateDragFromEvent(event, {
@@ -1214,6 +1222,14 @@ function WaveformView({
     const isOverlayReadOnly = rangeReadOnly && createRange == null;
     const showRangeOverlay =
         Boolean(overlayRange) && (isRangeDragging || !isPlaying || !isRangeCollapsed(overlayRange));
+    const showPlayheadComment =
+        interactive &&
+        !isPlaying &&
+        !isRangeDragging &&
+        createRange == null &&
+        range == null &&
+        durationSec > 0 &&
+        onRangeDragCreate != null;
 
     const scrubTimeChip =
         isTape && scrubPreviewTimeSec != null ? (
@@ -1257,6 +1273,9 @@ function WaveformView({
                               if (event.button > 0) {
                                   return;
                               }
+                              if (isWaveformChromeTarget(event.target)) {
+                                  return;
+                              }
                               toggleTapePlaybackRef.current?.();
                           }
                         : undefined
@@ -1265,10 +1284,34 @@ function WaveformView({
                 <div ref={containerRef} className="bp-WaveformView-canvas" />
                 <div
                     ref={playheadRef}
-                    aria-hidden="true"
-                    className="bp-WaveformView-playhead"
+                    aria-hidden={showPlayheadComment ? undefined : true}
+                    className={classNames('bp-WaveformView-playhead', {
+                        'bp-WaveformView-playhead--comment': showPlayheadComment,
+                    })}
                     data-testid="bp-waveform-playhead"
-                />
+                >
+                    {showPlayheadComment && onRangeDragCreate && (
+                        <button
+                            key={Math.round(currentTime * 1000)}
+                            className="bp-WaveformRange-comment bp-WaveformView-playheadComment"
+                            data-testid="bp-waveform-playhead-comment"
+                            onClick={event => {
+                                event.stopPropagation();
+                                onRangeDragCreate();
+                            }}
+                            onPointerDown={event => {
+                                event.stopPropagation();
+                            }}
+                            onPointerUp={event => {
+                                event.stopPropagation();
+                            }}
+                            type="button"
+                        >
+                            <IconComment24 aria-hidden="true" className="bp-WaveformRange-commentIcon" />
+                            {__('media_range_comment')}
+                        </button>
+                    )}
+                </div>
                 {showRangeOverlay && overlayRange && (
                     <WaveformRangeSelection
                         ref={rangeLayerRef}

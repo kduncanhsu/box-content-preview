@@ -556,6 +556,105 @@ describe('WaveformView', () => {
         expect(onRangeChange).not.toHaveBeenCalled();
     });
 
+    test('should show Comment above the playhead while paused with no range', () => {
+        const onRangeDragCreate = jest.fn();
+        const { rerender } = render(
+            <WaveformView
+                currentTime={2}
+                durationSec={8}
+                isPlaying={false}
+                onRangeDragCreate={onRangeDragCreate}
+                peaks={[0.2, 0.8]}
+            />,
+        );
+
+        const button = screen.getByTestId('bp-waveform-playhead-comment');
+        expect(screen.getByTestId('bp-waveform-playhead')).toContainElement(button);
+        expect(button).toHaveClass('bp-WaveformView-playheadComment');
+        expect(button).toHaveTextContent(__('media_range_comment'));
+
+        fireEvent.click(button);
+        expect(onRangeDragCreate).toHaveBeenCalledTimes(1);
+
+        rerender(
+            <WaveformView
+                currentTime={2}
+                durationSec={8}
+                isPlaying
+                onRangeDragCreate={onRangeDragCreate}
+                peaks={[0.2, 0.8]}
+            />,
+        );
+
+        expect(screen.queryByTestId('bp-waveform-playhead-comment')).not.toBeInTheDocument();
+    });
+
+    test('should replay the playhead Comment button when seeking while paused', () => {
+        const { rerender } = render(
+            <WaveformView
+                currentTime={2}
+                durationSec={8}
+                isPlaying={false}
+                onRangeDragCreate={jest.fn()}
+                peaks={[0.2, 0.8]}
+            />,
+        );
+        const first = screen.getByTestId('bp-waveform-playhead-comment');
+
+        rerender(
+            <WaveformView
+                currentTime={2}
+                durationSec={8}
+                isPlaying={false}
+                onRangeDragCreate={jest.fn()}
+                peaks={[0.2, 0.8]}
+            />,
+        );
+        expect(screen.getByTestId('bp-waveform-playhead-comment')).toBe(first);
+
+        rerender(
+            <WaveformView
+                currentTime={5}
+                durationSec={8}
+                isPlaying={false}
+                onRangeDragCreate={jest.fn()}
+                peaks={[0.2, 0.8]}
+            />,
+        );
+
+        expect(screen.getByTestId('bp-waveform-playhead-comment')).not.toBe(first);
+        expect(screen.getByTestId('bp-waveform-playhead')).toContainElement(
+            screen.getByTestId('bp-waveform-playhead-comment'),
+        );
+    });
+
+    test('should hide the playhead Comment button when a range is showing', () => {
+        const { rerender } = render(
+            <WaveformView
+                durationSec={8}
+                isPlaying={false}
+                onRangeDragCreate={jest.fn()}
+                peaks={[0.2, 0.8]}
+                range={{ endMs: 4000, startMs: 2000 }}
+            />,
+        );
+
+        expect(screen.queryByTestId('bp-waveform-playhead-comment')).not.toBeInTheDocument();
+        expect(screen.getByTestId('bp-waveform-range-comment')).toBeInTheDocument();
+
+        rerender(
+            <WaveformView
+                durationSec={8}
+                isPlaying={false}
+                onRangeDragCreate={jest.fn()}
+                peaks={[0.2, 0.8]}
+                range={{ endMs: null, startMs: 2000 }}
+            />,
+        );
+
+        expect(screen.queryByTestId('bp-waveform-playhead-comment')).not.toBeInTheDocument();
+    });
+
     test('should show Comment above a checkbox range', () => {
         const onRangeDragCreate = jest.fn();
         render(

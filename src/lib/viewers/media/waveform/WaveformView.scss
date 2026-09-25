@@ -79,6 +79,19 @@
     transform: translate(-50%, -50%);
 }
 
+.bp-WaveformView-playhead--comment {
+    z-index: 5;
+}
+
+.bp-WaveformView-playhead .bp-WaveformView-playheadComment {
+    top: 0;
+    left: 50%;
+}
+
+.bp-WaveformView--tape .bp-WaveformView-playhead .bp-WaveformView-playheadComment {
+    top: 0;
+}
+
 .bp-WaveformView-hover {
     position: absolute;
     top: 100%;
